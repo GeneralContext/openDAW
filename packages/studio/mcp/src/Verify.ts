@@ -8,7 +8,7 @@ import {ProjectSkeleton} from "@opendaw/studio-adapters"
 import {InstrumentAudioUnit, NoteEvent, NoteRegion, Playfield, ProjectImpl} from "@opendaw/studio-scripting"
 import {readProject} from "./Overview"
 import {createTempoMap} from "./Render"
-import {checksumOf, graphBytes} from "./Requests"
+import {checksumOf, graphBytes, invertUpdates} from "./Requests"
 import {copyBytes, decodeUpdates} from "./UpdateCodec"
 import {decodeWav} from "./Wav"
 import {RequestRecord, SampleEntry, Workspace} from "./Workspace"
@@ -68,7 +68,7 @@ const replay = (graph: BoxGraph, record: RequestRecord, applied: Map<string, Rea
     }
     const target = record.target ?? ""
     const updates = applied.get(target) ?? panic(`it takes back ${target}, which is not an applied request`)
-    transaction(graph, () => updates.toReversed().forEach(update => update.inverse(graph)))
+    transaction(graph, () => invertUpdates(graph, updates))
     applied.delete(target)
 }
 

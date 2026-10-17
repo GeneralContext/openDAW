@@ -16,10 +16,11 @@ export const checksumOf = (graph: BoxGraph): string => {
     return Buffer.from(checksum.buffer, checksum.byteOffset, checksum.byteLength).toString("hex")
 }
 
-// What undo inverts, recorded and optimised as openDAW's own undo history records it.
+// What undo inverts and a verifier applies again, in the order it happened. The immediate listener gets the pointers
+// of a new box in its NewUpdate; the deferred notifications at the end of the transaction would undo later changes.
 const transact = (graph: BoxGraph, procedure: Exec): ReadonlyArray<Update> => {
     const applied: Array<Update> = []
-    const subscription = graph.subscribeToAllUpdates({onUpdate: update => {applied.push(update)}})
+    const subscription = graph.subscribeToAllUpdatesImmediate({onUpdate: update => {applied.push(update)}})
     graph.beginTransaction()
     const result = tryCatch(() => {
         procedure()
@@ -29,6 +30,22 @@ const transact = (graph: BoxGraph, procedure: Exec): ReadonlyArray<Update> => {
     if (result.status === "success") {return optimizeUpdates(applied)}
     if (graph.inTransaction()) {graph.abortTransaction()}
     return panic(result.error)
+}
+
+// Newest first. A box the edits created keeps the pointers it was created with, which its NewUpdate holds, so its
+// pointers are cleared first and its own changes go with it.
+export const invertUpdates = (graph: BoxGraph, updates: ReadonlyArray<Update>): void => {
+    const created = UUID.newSet<UUID.Bytes>(uuid => uuid)
+    updates.forEach(update => {
+        if (update.type === "new") {created.add(update.uuid)}
+    })
+    for (const uuid of created.values()) {
+        graph.findBox(uuid).ifSome(box => box.outgoingEdges().forEach(([pointer]) => pointer.defer()))
+    }
+    updates.toReversed().forEach(update => {
+        if ((update.type === "pointer" || update.type === "primitive") && created.hasKey(update.address.uuid)) {return}
+        update.inverse(graph)
+    })
 }
 
 const messageOf = (error: unknown): string => error instanceof Error ? error.message : String(error)
@@ -110,7 +127,7 @@ const undo = (workspace: Workspace): Nullable<RequestRecord> => {
         return finish("failed", {message: "The project changed outside these tools after that request, so undo cannot take it back safely"})
     }
     const updates = decodeUpdates(Buffer.from(target.updates, "base64"))
-    const inverted = tryCatch(() => transact(graph, () => updates.toReversed().forEach(update => update.inverse(graph))))
+    const inverted = tryCatch(() => transact(graph, () => invertUpdates(graph, updates)))
     if (inverted.status === "failure") {return finish("failed", {message: `The request could not be taken back: ${messageOf(inverted.error)}`})}
     workspace.saveGraph(graph)
     return finish("applied", {changes: diffLines(before, overview(readProject(graphBytes(graph)))), details: describeUpdates(graph, inverted.value)})

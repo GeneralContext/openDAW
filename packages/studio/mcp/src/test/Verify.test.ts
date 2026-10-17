@@ -4,7 +4,7 @@ import {existsSync, readFileSync, writeFileSync} from "node:fs"
 import {join} from "node:path"
 import {fileURLToPath, pathToFileURL} from "node:url"
 import {ProjectSkeleton} from "@opendaw/studio-adapters"
-import {runRequest, undoRequest} from "../Requests"
+import {checksumOf, runRequest, undoRequest} from "../Requests"
 import {describeProject, readStart, verifyWorkspace} from "../Verify"
 import {Workspace} from "../Workspace"
 import {fixtureProject, removeDirectories, temporaryDirectory} from "./Fixture"
@@ -42,6 +42,21 @@ describe("Verify", () => {
         expect(project.bpm).toBe(120)
         expect(project.parts.map(part => [part.label, part.notes.length])).toEqual([["Lead", 8], ["Bass", 2]])
         expect(project.parts[1].notes[1]).toMatchObject({pitch: 43, time: 1, position: 1920})
+    })
+
+    it("applies again a pointer that a request changes on a box it creates", async () => {
+        const {start, workspace} = task()
+        const record = await runRequest(workspace, `const trigger = project.addInstrumentUnit("Playfield", {label: "Trigger"})
+trigger.output = null
+instrument("Lead", "Vaporisateur").addAudioEffect("Compressor").sideChain = trigger`, "Sidechain")
+        expect(record.status).toBe("applied")
+        const {verification, graph} = verifyWorkspace(workspace, readStart(start))
+        expect(verification).toMatchObject({status: "valid", requests: 1})
+        expect(checksumOf(graph!)).toBe(checksumOf(workspace.loadGraph()))
+        const undo = await undoRequest(workspace)
+        expect(undo?.message ?? null).toBeNull()
+        expect(checksumOf(workspace.loadGraph())).toBe(checksumOf(ProjectSkeleton.decode(readStart(start)).boxGraph))
+        expect(verifyWorkspace(workspace, readStart(start)).verification).toMatchObject({status: "valid", requests: 1, undos: 1})
     })
 
     it("refuses a workspace that does not start from the task's project", async () => {

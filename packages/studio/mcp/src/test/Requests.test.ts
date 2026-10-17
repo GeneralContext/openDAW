@@ -69,6 +69,18 @@ project.addAuxUnit({label: "Verb"}).addAudioEffect("DattorroReverb")`, "Mix")
         expect(await undoRequest(workspace)).toBeNull()
     })
 
+    it("undoes a request that changes a pointer of a box it creates", async () => {
+        const workspace = fixtureWorkspace()
+        const original = checksumOf(workspace.loadGraph())
+        const record = await runRequest(workspace, `const trigger = project.addInstrumentUnit("Playfield", {label: "Trigger"})
+trigger.output = null
+instrument("Lead", "Vaporisateur").addAudioEffect("Compressor").sideChain = trigger`, "Sidechain")
+        expect(record.status).toBe("applied")
+        const undo = await undoRequest(workspace)
+        expect(undo?.message ?? null).toBeNull()
+        expect(checksumOf(workspace.loadGraph())).toBe(original)
+    })
+
     it("refuses to undo a request after the project changed outside the tools", async () => {
         const workspace = fixtureWorkspace()
         await runRequest(workspace, `project.bpm = 100`, "Tempo")
