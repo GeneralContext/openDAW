@@ -6,7 +6,8 @@
   "description": "An MCP server and command line that edit an openDAW project with the Script API, headless, and render it with openDAW's engine",
   "type": "module",
   "bin": {
-    "studio-mcp": "./bin/studio-mcp"
+    "studio-mcp": "./bin/studio-mcp",
+    "studio-mcp-verify": "./bin/studio-mcp-verify"
   },
   "scripts": {
     "build": "tsc && node build.mjs",

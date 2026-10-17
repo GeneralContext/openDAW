@@ -13,7 +13,8 @@ const repository = join(root, "..", "..", "..")
 const modules = join(repository, "node_modules")
 export const entries = {
     "studio-mcp": join(root, "src/cli.ts"),
-    "studio-mcp-worker": join(root, "src/ScriptWorker.ts")
+    "studio-mcp-worker": join(root, "src/ScriptWorker.ts"),
+    "studio-mcp-verify": join(root, "src/VerifyCli.ts")
 }
 
 export const bundle = (names = Object.keys(entries), outdir = join(root, "dist")) => build({
@@ -57,11 +58,13 @@ const distribute = async directory => {
     mkdirSync(join(lib, "node_modules/@opendaw/studio-scripting/dist"), {recursive: true})
     writeFileSync(join(lib, "node_modules/@opendaw/studio-scripting/dist/index.js"), "export {}\n")
     mkdirSync(join(directory, "bin"))
-    writeFileSync(join(directory, "bin/studio-mcp"), `#!/bin/sh
-# The studio-mcp command line; see 'studio-mcp --help'.
-exec node --disable-warning=ExperimentalWarning "$(dirname "$(readlink -f "$0")")/../lib/studio-mcp.mjs" "$@"
+    for (const name of ["studio-mcp", "studio-mcp-verify"]) {
+        writeFileSync(join(directory, "bin", name), `#!/bin/sh
+# See '${name} --help'.
+exec node --disable-warning=ExperimentalWarning "$(dirname "$(readlink -f "$0")")/../lib/${name}.mjs" "$@"
 `)
-    chmodSync(join(directory, "bin/studio-mcp"), 0o755)
+        chmodSync(join(directory, "bin", name), 0o755)
+    }
     cpSync(join(repository, "LICENSE"), join(directory, "LICENSE"))
     const origin = source()
     writeFileSync(join(directory, "SOURCE.md"), `# Source

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Grades a workspace for a benchmark task; see 'studio-mcp-verify --help'.
+exec node --disable-warning=ExperimentalWarning "$(dirname "$(readlink -f "$0")")/../dist/studio-mcp-verify.mjs" "$@"
