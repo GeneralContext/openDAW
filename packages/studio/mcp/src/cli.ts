@@ -35,6 +35,7 @@ const {values, positionals} = parseArgs({
 
 const workspace = Workspace.locate(values.dir)
 const [command, ...rest] = positionals
+const TAKES_ARGUMENTS = new Set(["read", "run", "docs"])
 
 const number = (value: Optional<string>): Optional<number> => isDefined(value) ? Number(value) : undefined
 
@@ -60,6 +61,9 @@ const argumentsOf = (name: string): Record<string, unknown> => {
 
 const main = async (): Promise<ToolResult> => {
     if (values.help === true || !isDefined(command)) {return {text: USAGE, ok: true}}
+    if (rest.length > 0 && !TAKES_ARGUMENTS.has(command)) {
+        return panic(`'${command}' takes no argument '${rest.join(" ")}'; options start with --, e.g. 'render --stems'`)
+    }
     if (command === "init") {
         workspace.create(startingProject())
         return {text: `Created a workspace in ${workspace.directory}\n\n${status(workspace)}`, ok: true}

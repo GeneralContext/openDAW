@@ -42,6 +42,7 @@ Globals in a request:
   instrument(label, type?)     an instrument unit by label; give the type for typed parameters,
                                e.g. instrument("Bass", "Vaporisateur").instrument.cutoff = 800
   unit(label)                  any unit by label (aux, group, instrument); project.output is the master
+                               (instrument and unit are functions: give your own variables other names)
   PPQN                         time units: PPQN.Quarter = 960, PPQN.Bar = 3840 in 4/4, PPQN.SemiQuaver = 240
   console.log(...)             output shown in the result
   midiToHz, dbToGain, gainToDb, Chord, Interpolation, AudioData, ... (see 'docs globals')
@@ -67,8 +68,8 @@ StereoTool, Tidal, Waveshaper, Vocoder, Convolver. Use 'docs <name>' for paramet
 
 Tools: status (the overview and your last requests), read PATH (details; a region shows its notes with names
 and bar.beat positions; 'read requests' lists all requests), run (one request), render (WAV files in renders/;
-stems adds one per instrument, each through the output's effects), undo (takes back the newest applied request;
-undo again for the one before), and docs QUERY. A request can also render with 'await project.mixdown()' and
+the stems option, --stems on the command line, adds one per instrument, each through the output's effects),
+undo (takes back the newest applied request; undo again for the one before), and docs QUERY. A request can also render with 'await project.mixdown()' and
 write files to renders/ with 'openDAW.saveFile(...)'.
 
 Workflow: read the overview, make one focused request, read the change summary, render and listen or analyse,

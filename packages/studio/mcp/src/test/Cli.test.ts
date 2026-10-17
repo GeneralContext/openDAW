@@ -65,6 +65,7 @@ describe("Command line", () => {
         writeFileSync(source, new Uint8Array(ProjectSkeleton.encode(fixtureProject().context.boxGraph)))
         const workspace = join(directory, "song")
         await cli(workspace, "init", "--from", source)
+        expect((await cli(workspace, "render", "stems")).stderr).toMatch(/'render' takes no argument 'stems'; options start with --/)
         const rendered = await cli(workspace, "render", "--name", "take", "--stems")
         expect(rendered.code).toBe(0)
         expect(rendered.stdout).toMatch(/take\.wav: 4\.00 s, 48000 Hz stereo, peak -?\d/)
