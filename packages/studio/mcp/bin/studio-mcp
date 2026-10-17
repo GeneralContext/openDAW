@@ -1,0 +1,3 @@
+#!/bin/sh
+# The studio-mcp command line; see 'studio-mcp --help'.
+exec node --disable-warning=ExperimentalWarning "$(dirname "$(readlink -f "$0")")/../dist/studio-mcp.mjs" "$@"

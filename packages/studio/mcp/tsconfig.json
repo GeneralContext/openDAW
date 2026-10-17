@@ -1,0 +1,23 @@
+{
+  "extends": "@opendaw/typescript-config/base.json",
+  "compilerOptions": {
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "types": [
+      "node"
+    ],
+    "experimentalDecorators": false,
+    "emitDecoratorMetadata": false,
+    "noEmit": true
+  },
+  "include": [
+    "src",
+    "vitest.config.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
+}
