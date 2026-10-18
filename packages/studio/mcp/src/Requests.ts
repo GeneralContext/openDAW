@@ -74,7 +74,8 @@ export const scriptServices = (workspace: Workspace): ScriptServices => ({
     addSample: async (data, name) => workspace.addSample(data, name),
     listSamples: async () => workspace.listSamples(),
     renderMixdown: async (project, {sampleRate}) => {
-        const render = await renderProject(new Uint8Array(project), {sampleRate, samples: async uuid => workspace.loadSample(uuid), allowMissing: true})
+        const render = await renderProject(new Uint8Array(project),
+            {sampleRate, samples: async uuid => workspace.loadSample(uuid), allowMissing: true, runScripts: true})
         const audio = AudioData.create(render.sampleRate, render.channels[0].length, render.channels.length)
         render.channels.forEach((channel, index) => audio.frames[index].set(channel))
         return audio

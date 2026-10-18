@@ -50,7 +50,9 @@ Commands exit with 1 when the tool fails and 3 when a request was not applied. `
 
 `studio-mcp-verify` (`src/Verify.ts`, `src/VerifyCli.ts`) is for the graders of benchmark tasks and is not part of
 the proposal in the plan. It applies a workspace's requests again from the task's starting project, checks that
-each one makes the project it recorded and that `project.od` is the result, checks a policy (no script devices,
-only the supplied samples, optionally no audio tracks), and writes `verification.json`, `project.json` (the audible
-notes of every part in seconds) and, with `--render`, `final.wav` and `render.json`. It exits with 2 when the
-workspace is invalid. See `studio-mcp-verify --help`.
+each one makes the project it recorded and that `project.od` is the result, checks a policy (no script devices
+unless allowed, only the supplied samples, optionally no audio tracks), and writes `verification.json`,
+`project.json` (the audible notes of every part in seconds) and, with `--render`, `final.wav` and `render.json`. It
+exits with 2 when the workspace is invalid. `--run-scripts` renders script devices by running their JavaScript in the
+verifier's process, so a grader runs it as a user that cannot read the task's hidden files. `studio-mcp render` runs
+the workspace's own script devices. See `studio-mcp-verify --help`.

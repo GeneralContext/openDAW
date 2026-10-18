@@ -9,13 +9,15 @@ import {Workspace} from "./Workspace"
 
 const USAGE = `studio-mcp-verify: grade a studio-mcp workspace for a benchmark task
 
-  studio-mcp-verify --start FILE.od --out DIR [--render] [--allow-scripts] [--no-audio-tracks]
+  studio-mcp-verify --start FILE.od --out DIR [--render] [--allow-scripts | --run-scripts] [--no-audio-tracks]
                     [--samples UUID,... | --sample-dir DIR]
 
 Applies the workspace's requests again from the task's starting project (FILE.od), checks that each one makes the
 project it recorded and that project.od is the result, checks the policy, and writes verification.json,
 project.json and, with --render, final.wav and render.json to DIR. --allow-scripts accepts script devices but never
-runs their code, so such a project is graded but not rendered. --no-audio-tracks refuses audio tracks. --samples
+runs their code, so such a project is graded but not rendered. --run-scripts also accepts them, and the render runs
+their JavaScript in this process: give it a user that cannot read the task's hidden files. --no-audio-tracks refuses
+audio tracks. --samples
 lists the samples a project may use; --sample-dir gives them as files (index.json and WAVs, as in a workspace)
 that the render plays.
 
@@ -25,7 +27,8 @@ Exit codes: 2 when the workspace is invalid (a measured outcome), 1 when the too
 const {values} = parseArgs({
     options: {
         dir: {type: "string"}, start: {type: "string"}, out: {type: "string"}, render: {type: "boolean"},
-        "allow-scripts": {type: "boolean"}, "no-audio-tracks": {type: "boolean"}, samples: {type: "string"},
+        "allow-scripts": {type: "boolean"}, "run-scripts": {type: "boolean"}, "no-audio-tracks": {type: "boolean"},
+        samples: {type: "string"},
         "sample-dir": {type: "string"}, help: {type: "boolean", short: "h"}
     }
 })
@@ -40,10 +43,12 @@ const main = async (): Promise<{text: string, code: number}> => {
     const start = values.start ?? panic("--start is required")
     const sampleDirectory = values["sample-dir"]
     if (isDefined(values.samples) && isDefined(sampleDirectory)) {return panic("Use --samples or --sample-dir, not both")}
+    const runScripts = values["run-scripts"] === true
     mkdirSync(out, {recursive: true})
     OUTPUTS.forEach(file => rmSync(join(out, file), {force: true}))
     const policy: Policy = {
-        allowScriptDevices: values["allow-scripts"] === true, allowAudioTracks: values["no-audio-tracks"] !== true,
+        allowScriptDevices: values["allow-scripts"] === true || runScripts,
+        allowAudioTracks: values["no-audio-tracks"] !== true,
         allowedSamples: isDefined(sampleDirectory) ? sampleIndex(sampleDirectory).map(sample => sample.uuid)
             : isDefined(values.samples) ? values.samples.split(",").filter(uuid => uuid !== "") : undefined
     }
@@ -56,7 +61,7 @@ const main = async (): Promise<{text: string, code: number}> => {
     if (values.render !== true) {return {text: summary, code: 0}}
     // Scoring uses project.json, so a project that cannot render is still graded
     const samples = isDefined(sampleDirectory) ? sampleLoader(sampleDirectory) : async () => null
-    const rendered = await renderProject(graphBytes(graph), {samples, allowMissing: false})
+    const rendered = await renderProject(graphBytes(graph), {samples, allowMissing: false, runScripts})
         .then(render => ({status: "rendered", file: "final.wav", seconds: render.seconds, bytes: encodeWav(render, 24)}),
             (error: unknown) => ({status: "not rendered", reason: error instanceof Error ? error.message : String(error), bytes: null}))
     if (isDefined(rendered.bytes)) {writeFileSync(join(out, "final.wav"), rendered.bytes)}

@@ -72,7 +72,8 @@ export const render = async (workspace: Workspace, request: RenderRequest): Prom
     const project = readProject(graph)
     const bar = PPQN.Quarter * 4 / project.timeSignature.denominator * project.timeSignature.numerator
     const options = {
-        samples: async (uuid: string) => workspace.loadSample(uuid), allowMissing: true, seconds: request.seconds,
+        samples: async (uuid: string) => workspace.loadSample(uuid), allowMissing: true, runScripts: true,
+        seconds: request.seconds,
         fromPpqn: isDefined(request.fromBar) ? (request.fromBar - 1) * bar : undefined,
         toPpqn: isDefined(request.toBar) ? request.toBar * bar : undefined
     }

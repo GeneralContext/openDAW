@@ -118,4 +118,29 @@ drums.addAudioTrack().addRegion(sample, {duration: PPQN.Bar})`, "Policy")
         expect(existsSync(join(out, "final.wav"))).toBe(false)
         expect(JSON.parse(readFileSync(join(out, "verification.json"), "utf8")).status).toBe("invalid")
     }, 60_000)
+
+    it("renders script devices only with --run-scripts", async () => {
+        const {start, workspace} = task()
+        await runRequest(workspace, `project.addInstrumentUnit("Apparat", {label: "Tone"}).instrument.code = \`class Processor {
+    phase = 0
+    process(output, block) {
+        for (let i = block.s0; i < block.s1; i++) {
+            output[0][i] += 0.2 * Math.sin(this.phase)
+            output[1][i] += 0.2 * Math.sin(this.phase)
+            this.phase += 0.05
+        }
+    }
+}\``, "Tone")
+        const out = temporaryDirectory()
+        const verify = (...args: ReadonlyArray<string>): Promise<{code: number, stdout: string}> => new Promise(resolve => {
+            execFile(process.execPath, ["--disable-warning=ExperimentalWarning", join(root, "dist", "studio-mcp-verify.mjs"),
+                "--dir", workspace.directory, "--start", start, "--out", out, "--samples", "", ...args],
+            (error, stdout) => resolve({code: typeof error?.code === "number" ? error.code : 0, stdout}))
+        })
+        expect((await verify("--render")).code).toBe(2)
+        expect((await verify("--render", "--allow-scripts")).stdout).toContain("not rendered")
+        expect(existsSync(join(out, "final.wav"))).toBe(false)
+        expect(await verify("--render", "--run-scripts")).toEqual({code: 0, stdout: "valid: 1 requests, 0 undos; rendered\n"})
+        expect(existsSync(join(out, "final.wav"))).toBe(true)
+    }, 60_000)
 })

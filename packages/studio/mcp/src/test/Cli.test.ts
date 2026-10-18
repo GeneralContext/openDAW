@@ -71,4 +71,25 @@ describe("Command line", () => {
         expect(rendered.stdout).toMatch(/take\.wav: 4\.00 s, 48000 Hz stereo, peak -?\d/)
         expect(existsSync(join(workspace, "renders", "take.Lead.wav"))).toBe(true)
     }, 60_000)
+
+    it("renders the workspace's script devices", async () => {
+        const directory = temporaryDirectory()
+        const workspace = join(directory, "song")
+        await cli(workspace, "init")
+        const request = join(directory, "tone.ts")
+        writeFileSync(request, `project.addInstrumentUnit("Apparat", {label: "Tone"}).instrument.code = \`class Processor {
+    phase = 0
+    process(output, block) {
+        for (let i = block.s0; i < block.s1; i++) {
+            output[0][i] += 0.2 * Math.sin(this.phase)
+            output[1][i] += 0.2 * Math.sin(this.phase)
+            this.phase += 0.05
+        }
+    }
+}\``)
+        expect((await cli(workspace, "run", request)).code).toBe(0)
+        const rendered = await cli(workspace, "render", "--seconds", "1")
+        expect(rendered.code).toBe(0)
+        expect(rendered.stdout).toMatch(/1\.00 s, 48000 Hz stereo, peak -1[34]\.\d dBFS/)
+    }, 60_000)
 })
