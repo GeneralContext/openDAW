@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # Claude Code Instructions
 
 ## Coding Style
